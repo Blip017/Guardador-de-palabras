@@ -1,0 +1,109 @@
+//Archivo principal power by rayo
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Guardador de Palabras</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    input {
+      padding: 10px;
+      width: 200px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: white;
+      margin: 5px auto;
+      padding: 10px;
+      width: 250px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete {
+      background: red;
+      color: white;
+      border: none;
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Guardador de Palabras</h1>
+
+  <input type="text" id="palabra" placeholder="Escribe una palabra">
+  <button onclick="guardarPalabra()">Guardar</button>
+  <button onclick="borrarTodo()">Borrar Todo</button>
+
+  <ul id="lista"></ul>
+
+  <script>
+    let palabras = JSON.parse(localStorage.getItem("palabras")) || [];
+
+    function mostrarPalabras() {
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+      palabras.forEach((palabra, index) => {
+        lista.innerHTML += `
+          <li>
+            ${palabra}
+            <button class="delete" onclick="eliminarPalabra(${index})">X</button>
+          </li>
+        `;
+      });
+    }
+
+    function guardarPalabra() {
+      const input = document.getElementById("palabra");
+      if (input.value.trim() !== "") {
+        palabras.push(input.value.trim());
+        localStorage.setItem("palabras", JSON.stringify(palabras));
+        input.value = "";
+        mostrarPalabras();
+      }
+    }
+
+    function eliminarPalabra(index) {
+      palabras.splice(index, 1);
+      localStorage.setItem("palabras", JSON.stringify(palabras));
+      mostrarPalabras();
+    }
+
+    function borrarTodo() {
+      palabras = [];
+      localStorage.removeItem("palabras");
+      mostrarPalabras();
+    }
+
+    mostrarPalabras();
+  </script>
+
+</body>
+</html>
