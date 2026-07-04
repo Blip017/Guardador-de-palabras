@@ -282,6 +282,48 @@
     letter-spacing:.04em;
   }
 
+  .history-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:26px 4px 8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#8b95ad;
+  }
+  .clear-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:none;
+    color:var(--stamp);
+    background:none;
+    border:1px solid rgba(178,58,46,.5);
+    padding:5px 10px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .clear-btn:hover{ background:var(--stamp); color:var(--paper); }
+
+  .items.history{ opacity:.82; }
+  .items.history .item-row{ padding:11px 18px; }
+  .items.history .item-name{ font-size:14px; }
+  .items.history .item-sub{ display:flex; gap:8px; flex-wrap:wrap; }
+  .removed-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted);
+  }
+  .restore-btn{
+    background:none; border:1px solid var(--line); cursor:pointer;
+    color:var(--success); padding:5px 9px; margin-left:2px;
+    border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    flex-shrink:0;
+  }
+  .restore-btn:hover{ background:var(--success); color:var(--paper); border-color:var(--success); }
+
   @media (max-width:420px){
     .row2{ grid-template-columns:1fr; }
     .stamp{ width:88px; height:88px; top:-16px; right:-10px; }
@@ -347,16 +389,56 @@
     <button class="add-btn" id="addBtn">+ Agregar a la lista</button>
   </div>
 
-  <div class="footnote">Los datos se guardan solo mientras esta página esté abierta</div>
+  <div class="history-header">
+    <span>Historial de eliminados</span>
+    <button class="clear-btn" id="clearAllBtn">Vaciar todo</button>
+  </div>
+  <div class="items history" id="historyList"></div>
+
+  <div class="footnote">Los datos quedan guardados en este navegador hasta que apretés "Vaciar todo"</div>
 </div>
 
 <script>
-  const items = [];
+  const STORAGE_KEY = 'registro_importacion_v1';
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return { items: [], history: [], fx: 6120 };
+      const parsed = JSON.parse(raw);
+      return {
+        items: Array.isArray(parsed.items) ? parsed.items : [],
+        history: Array.isArray(parsed.history) ? parsed.history : [],
+        fx: parsed.fx || 6120
+      };
+    }catch(e){
+      return { items: [], history: [], fx: 6120 };
+    }
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        items,
+        history,
+        fx: parseFloat(fxInput.value) || 6120
+      }));
+    }catch(e){
+      console.error('No se pudo guardar:', e);
+    }
+  }
+
+  const initial = loadState();
+  const items = initial.items;
+  const history = initial.history || [];
   let pendingPhoto = null;
 
   const fxInput = document.getElementById('fxRate');
+  fxInput.value = initial.fx;
   const resetFx = document.getElementById('resetFx');
   const itemsList = document.getElementById('itemsList');
+  const historyList = document.getElementById('historyList');
+  const clearAllBtn = document.getElementById('clearAllBtn');
   const stampTotal = document.getElementById('stampTotal');
   const totalUsdLine = document.getElementById('totalUsdLine');
 
@@ -408,12 +490,38 @@
     }
     items.push({ id: Date.now() + Math.random(), name, price, qty, photo: pendingPhoto });
     resetAddForm();
+    saveState();
     render();
   });
 
   function deleteItem(id){
     const idx = items.findIndex(i => i.id === id);
-    if(idx > -1){ items.splice(idx,1); render(); }
+    if(idx > -1){
+      const [removed] = items.splice(idx,1);
+      removed.removedAt = new Date().toLocaleString('es-PY', { dateStyle:'short', timeStyle:'short' });
+      history.unshift(removed);
+      saveState();
+      render();
+    }
+  }
+
+  function restoreItem(id){
+    const idx = history.findIndex(i => i.id === id);
+    if(idx > -1){
+      const [restored] = history.splice(idx,1);
+      delete restored.removedAt;
+      items.push(restored);
+      saveState();
+      render();
+    }
+  }
+
+  function clearAll(){
+    if(!confirm('Esto va a borrar la lista actual y todo el historial. ¿Confirmás?')) return;
+    items.length = 0;
+    history.length = 0;
+    saveState();
+    render();
   }
 
   function render(){
@@ -451,11 +559,37 @@
 
     stampTotal.textContent = fmtGs(totalUsd * fx) + (items.length ? `(${items.length})` : '');
     totalUsdLine.textContent = fmtUsd(totalUsd);
+
+    if(history.length === 0){
+      historyList.innerHTML = `<div class="empty">Todavía no eliminaste ningún artículo.</div>`;
+    } else {
+      historyList.innerHTML = history.map(item => {
+        const subUsd = item.price * item.qty;
+        const thumbContent = item.photo
+          ? `<img src="${item.photo}" alt="${item.name}">`
+          : cameraIconHTML;
+        return `
+          <div class="item-row">
+            <div class="thumb">${thumbContent}</div>
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-sub">
+                <span>${fmtUsd(item.price)} x ${item.qty}</span>
+                <span class="removed-tag">eliminado ${item.removedAt || ''}</span>
+              </div>
+            </div>
+            <div class="item-amt">${fmtUsd(subUsd)}</div>
+            <button class="restore-btn" onclick="restoreItem(${item.id})">Restaurar</button>
+          </div>`;
+      }).join('');
+    }
   }
 
-  fxInput.addEventListener('input', render);
-  resetFx.addEventListener('click', () => { fxInput.value = 6120; render(); });
+  fxInput.addEventListener('input', () => { saveState(); render(); });
+  resetFx.addEventListener('click', () => { fxInput.value = 6120; saveState(); render(); });
+  clearAllBtn.addEventListener('click', clearAll);
   window.deleteItem = deleteItem;
+  window.restoreItem = restoreItem;
 
   render();
 </script>
