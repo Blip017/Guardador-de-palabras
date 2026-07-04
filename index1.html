@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Importación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #1c2536;
+    --ink-soft: #29334a;
+    --paper: #f5efe1;
+    --paper-dark: #e9e0cb;
+    --stamp: #b23a2e;
+    --gold: #b8912f;
+    --muted: #6b7280;
+    --success: #3f6b4f;
+    --line: #d8cfb8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 10%, #232d43 0%, transparent 45%),
+      radial-gradient(circle at 85% 90%, #202a40 0%, transparent 40%),
+      var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    color:var(--ink);
+    padding:32px 16px 80px;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    position:relative;
+  }
+  .eyebrow{
+    color:#8b95ad;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    text-align:center;
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'IBM Plex Serif', serif;
+    color:var(--paper);
+    text-align:center;
+    font-size:26px;
+    font-weight:600;
+    margin:0 0 24px;
+    letter-spacing:.01em;
+  }
+
+  /* ---- header ledger card ---- */
+  .ledger-header{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px 22px;
+    position:relative;
+    box-shadow:0 14px 30px -12px rgba(0,0,0,.5);
+  }
+  .ledger-header::before{
+    content:"";
+    position:absolute; inset:6px;
+    border:1px dashed var(--line);
+    border-radius:2px;
+    pointer-events:none;
+  }
+  .fx-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-family:'IBM Plex Serif', serif;
+    font-size:16px;
+    font-weight:600;
+    flex-wrap:wrap;
+  }
+  .fx-row input{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:16px;
+    color:var(--stamp);
+    background:transparent;
+    border:none;
+    border-bottom:2px solid var(--stamp);
+    width:110px;
+    text-align:center;
+    padding:2px 0;
+  }
+  .fx-row input:focus{outline:none;}
+  .reset-btn{
+    background:none;border:none;cursor:pointer;
+    color:var(--muted); padding:4px; display:flex; align-items:center;
+    transition:transform .3s ease;
+  }
+  .reset-btn:hover{ color:var(--stamp); transform:rotate(-90deg); }
+
+  .total-line{
+    text-align:center;
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .total-line b{ color:var(--ink); font-size:15px; }
+
+  /* ---- stamp badge ---- */
+  .stamp{
+    position:absolute;
+    top:-22px; right:-14px;
+    width:108px; height:108px;
+    border-radius:50%;
+    border:3px double var(--stamp);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    transform:rotate(-9deg);
+    background:rgba(178,58,46,0.04);
+    color:var(--stamp);
+    font-family:'IBM Plex Mono', monospace;
+    text-align:center;
+    line-height:1.15;
+    box-shadow:0 6px 14px -6px rgba(178,58,46,.5);
+  }
+  .stamp .lbl{ font-size:9px; letter-spacing:.14em; text-transform:uppercase; opacity:.8;}
+  .stamp .amt{ font-size:13px; font-weight:700; padding:0 6px; word-break:break-word;}
+
+  /* ---- items ---- */
+  .items{
+    margin-top:22px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:0 14px 30px -14px rgba(0,0,0,.5);
+  }
+  .item-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .item-row:last-child{ border-bottom:none; }
+  .thumb{
+    width:46px; height:46px;
+    border-radius:50%;
+    background:var(--paper-dark);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    flex-shrink:0;
+    border:1px solid var(--line);
+  }
+  .thumb img{ width:100%; height:100%; object-fit:cover; }
+  .thumb svg{ width:20px; height:20px; color:#a89b7a; }
+
+  .item-info{ flex:1; min-width:0; }
+  .item-name{
+    font-family:'IBM Plex Serif', serif;
+    font-weight:600;
+    font-size:15px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .item-sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .item-amt{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:14px;
+    text-align:right;
+    white-space:nowrap;
+  }
+  .item-amt .gs{ display:block; font-weight:500; font-size:11px; color:var(--muted); }
+
+  .del-btn{
+    background:none; border:none; cursor:pointer;
+    color:var(--line); padding:4px; margin-left:2px;
+    transition:color .2s ease;
+    flex-shrink:0;
+  }
+  .del-btn:hover{ color:var(--stamp); }
+
+  .empty{
+    padding:36px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+  }
+
+  /* ---- add form ---- */
+  .add-card{
+    margin-top:18px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:18px;
+    box-shadow:0 14px 30px -14px rgba(0,0,0,.5);
+  }
+  .add-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:12px;
+  }
+  .add-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .field input{
+    width:100%;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#fffdf8;
+    color:var(--ink);
+  }
+  .field input:focus{ outline:none; border-color:var(--gold); }
+
+  .photo-field{
+    display:flex; align-items:center; gap:10px;
+  }
+  .photo-field .thumb{ cursor:pointer; }
+  .photo-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    background:none; border:1px dashed var(--line);
+    padding:8px 10px; border-radius:3px; cursor:pointer;
+  }
+  .photo-btn:hover{ border-color:var(--gold); color:var(--gold); }
+  input[type=file]{ display:none; }
+
+  .add-btn{
+    margin-top:4px;
+    width:100%;
+    font-family:'IBM Plex Serif', serif;
+    font-weight:600;
+    font-size:14px;
+    color:var(--paper);
+    background:var(--ink);
+    border:none;
+    padding:12px;
+    border-radius:3px;
+    cursor:pointer;
+    letter-spacing:.02em;
+    transition:background .2s ease;
+  }
+  .add-btn:hover{ background:var(--stamp); }
+  .add-btn:disabled{ background:#9aa1af; cursor:not-allowed; }
+
+  .footnote{
+    text-align:center;
+    color:#7b859c;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    margin-top:18px;
+    letter-spacing:.04em;
+  }
+
+  @media (max-width:420px){
+    .row2{ grid-template-columns:1fr; }
+    .stamp{ width:88px; height:88px; top:-16px; right:-10px; }
+    .stamp .amt{ font-size:11px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Cuaderno de importación</div>
+  <h1>Registro de Mercadería</h1>
+
+  <div class="ledger-header">
+    <div class="fx-row">
+      <span>FX: USD 1 =</span>
+      <span>Gs</span>
+      <input id="fxRate" type="number" inputmode="decimal" value="6120" min="1" step="1">
+      <button class="reset-btn" id="resetFx" title="Restablecer tasa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v6h-6"/>
+        </svg>
+      </button>
+    </div>
+    <div class="total-line">Total en dólares: <b id="totalUsdLine">$0.00</b></div>
+    <div class="stamp">
+      <div class="lbl">Total</div>
+      <div class="amt" id="stampTotal">Gs. 0</div>
+    </div>
+  </div>
+
+  <div class="items" id="itemsList"></div>
+
+  <div class="add-card">
+    <div class="add-title">Agregar artículo</div>
+    <div class="add-grid">
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="newName" placeholder="Ej: Toyota New Vitz 2011">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Precio (USD)</label>
+          <input type="number" id="newPrice" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="number" id="newQty" placeholder="1" min="1" step="1" value="1">
+        </div>
+      </div>
+      <div class="field">
+        <label>Foto (opcional)</label>
+        <div class="photo-field">
+          <div class="thumb" id="photoPreviewWrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/>
+            </svg>
+          </div>
+          <label for="photoInput" class="photo-btn">Elegir imagen</label>
+          <input type="file" id="photoInput" accept="image/*">
+        </div>
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn">+ Agregar a la lista</button>
+  </div>
+
+  <div class="footnote">Los datos se guardan solo mientras esta página esté abierta</div>
+</div>
+
+<script>
+  const items = [];
+  let pendingPhoto = null;
+
+  const fxInput = document.getElementById('fxRate');
+  const resetFx = document.getElementById('resetFx');
+  const itemsList = document.getElementById('itemsList');
+  const stampTotal = document.getElementById('stampTotal');
+  const totalUsdLine = document.getElementById('totalUsdLine');
+
+  const newName = document.getElementById('newName');
+  const newPrice = document.getElementById('newPrice');
+  const newQty = document.getElementById('newQty');
+  const photoInput = document.getElementById('photoInput');
+  const photoPreviewWrap = document.getElementById('photoPreviewWrap');
+  const addBtn = document.getElementById('addBtn');
+
+  const cameraIconHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/>
+    </svg>`;
+
+  function fmtUsd(n){
+    return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtGs(n){
+    return 'Gs. ' + Math.round(n).toLocaleString('es-PY');
+  }
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingPhoto = e.target.result;
+      photoPreviewWrap.innerHTML = `<img src="${pendingPhoto}" alt="preview">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function resetAddForm(){
+    newName.value = '';
+    newPrice.value = '';
+    newQty.value = 1;
+    pendingPhoto = null;
+    photoInput.value = '';
+    photoPreviewWrap.innerHTML = cameraIconHTML;
+  }
+
+  addBtn.addEventListener('click', () => {
+    const name = newName.value.trim();
+    const price = parseFloat(newPrice.value);
+    const qty = parseInt(newQty.value, 10) || 1;
+    if(!name || isNaN(price) || price < 0){
+      newName.focus();
+      return;
+    }
+    items.push({ id: Date.now() + Math.random(), name, price, qty, photo: pendingPhoto });
+    resetAddForm();
+    render();
+  });
+
+  function deleteItem(id){
+    const idx = items.findIndex(i => i.id === id);
+    if(idx > -1){ items.splice(idx,1); render(); }
+  }
+
+  function render(){
+    const fx = parseFloat(fxInput.value) || 0;
+    let totalUsd = 0;
+
+    if(items.length === 0){
+      itemsList.innerHTML = `<div class="empty">Todavía no agregaste artículos.<br>Sumá el primero abajo.</div>`;
+    } else {
+      itemsList.innerHTML = items.map(item => {
+        const subUsd = item.price * item.qty;
+        totalUsd += subUsd;
+        const thumbContent = item.photo
+          ? `<img src="${item.photo}" alt="${item.name}">`
+          : cameraIconHTML;
+        return `
+          <div class="item-row">
+            <div class="thumb">${thumbContent}</div>
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-sub">${fmtUsd(item.price)} x ${item.qty}</div>
+            </div>
+            <div class="item-amt">
+              ${fmtUsd(subUsd)}
+              <span class="gs">${fmtGs(subUsd * fx)}</span>
+            </div>
+            <button class="del-btn" onclick="deleteItem(${item.id})" title="Eliminar">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>`;
+      }).join('');
+    }
+
+    stampTotal.textContent = fmtGs(totalUsd * fx) + (items.length ? `(${items.length})` : '');
+    totalUsdLine.textContent = fmtUsd(totalUsd);
+  }
+
+  fxInput.addEventListener('input', render);
+  resetFx.addEventListener('click', () => { fxInput.value = 6120; render(); });
+  window.deleteItem = deleteItem;
+
+  render();
+</script>
+</body>
+</html>
